@@ -11,6 +11,10 @@ def main():
     txt_output = OUTPUT_FILE.replace(".jsonl", ".txt")
     save_to_txt(chunks, txt_output)
 
+    merged = merge_similar_chunks(chunks)
+    save_to_txt(merged, "data/final_merged_output.txt")
+    save_to_jsonl(merged, "data/final_merged_output.jsonl")
+
 if __name__ == "__main__":
     main()
 

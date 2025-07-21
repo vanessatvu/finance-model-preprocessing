@@ -2,6 +2,15 @@ from transformers import AutoTokenizer
 from config import MODEL_NAME, TOKEN_THRESHOLDS, MAX_CHUNK_TOKENS
 from utils import clean_paragraph
 
+def poor_graphical_text(text):
+    if "====" in text or "----" in text:  # lines often seen in tables/ASCII
+        return True
+    if any(symbol in text for symbol in ['│', '█', '╚', '═']):
+        return True
+    if sum(c.isdigit() for c in text) > 100:
+        return True
+    return False
+
 def load_tokenizer(model_name=MODEL_NAME):
     return AutoTokenizer.from_pretrained(model_name)
 
@@ -19,7 +28,8 @@ def chunk_and_classify_text(file_path, tokenizer):
 
     # Split and clean each paragraph
     raw_paragraphs = raw_text.split("\n\n")
-    paragraphs = [clean_paragraph(p) for p in raw_paragraphs if clean_paragraph(p)]
+    paragraphs = [clean_paragraph(p) for p in raw_paragraphs
+              if clean_paragraph(p) and not poor_graphical_text(clean_paragraph(p))]
 
     chunks = []
     current_chunk = []
