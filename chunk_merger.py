@@ -18,7 +18,7 @@ def chunks_are_related(text1: str, text2: str, threshold: float = SIMILARITY_THR
         similarity = util.pytorch_cos_sim(emb1, emb2).item()
         return similarity >= threshold
     except Exception as e:
-        print(f"❌ Similarity check failed: {e}")
+        print(f"Similarity check failed: {e}")
         return False
 
 # Recalculate and update label based on new token count
@@ -39,7 +39,7 @@ def merge_similar_chunks(chunks: List[Dict]) -> List[Dict]:
 
     for i, curr in enumerate(chunks[1:], 1):
         prev = merged_chunks[-1]
-        print(f"🔍 Comparing chunk {i} / {len(chunks)}")
+        print(f"Comparing chunk {i} / {len(chunks)}")
 
         if chunks_are_related(prev["text"], curr["text"]):
             prev["text"] += "\n" + curr["text"]
@@ -48,5 +48,5 @@ def merge_similar_chunks(chunks: List[Dict]) -> List[Dict]:
         else:
             merged_chunks.append(curr)
 
-    print(f"✅ Merging complete. Total merged chunks: {len(merged_chunks)}")
+    print(f"Merging complete. Total merged chunks: {len(merged_chunks)}")
     return merged_chunks

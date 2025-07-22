@@ -15,7 +15,6 @@ def main():
     txt_output = OUTPUT_FILE.replace(".jsonl", ".txt")
     save_to_txt(chunks, txt_output)
 
-    # run megaparse and merge similar chunks
     merged = merge_similar_chunks(chunks)
     save_to_jsonl(merged, "output/final_merged_output.jsonl")
     save_to_txt(merged, "output/final_merged_output.txt")
