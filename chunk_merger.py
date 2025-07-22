@@ -1,11 +1,13 @@
 from typing import List, Dict
 from sentence_transformers import SentenceTransformer, util
+from langchain_experimental.text_splitter import SemanticChunker
+from langchain.embeddings import HuggingFaceEmbeddings
 
 # Load embedding model
 model = SentenceTransformer("all-mpnet-base-v2")
 
 # CONFIGS
-SIMILARITY_THRESHOLD = 0.70
+SIMILARITY_THRESHOLD = 0.85  # adjusted for stricter merging
 MIN_LENGTH_TO_CHECK = 10     
 
 # Check if 2 chunks are related based on cosine similarity
@@ -50,3 +52,27 @@ def merge_similar_chunks(chunks: List[Dict]) -> List[Dict]:
 
     print(f"Merging complete. Total merged chunks: {len(merged_chunks)}")
     return merged_chunks
+
+# semantic rechunking pass
+def semantic_rechunk_pass(merged_chunks: List[Dict]) -> List[Dict]:
+    embedding_model = HuggingFaceEmbeddings(model_name="all-mpnet-base-v2")
+    chunker = SemanticChunker(embedding_model, overlap=50)
+
+    final_chunks = []
+    total_chunks = len(merged_chunks)
+
+    for i, chunk in enumerate(merged_chunks, 1):
+        print(f"Rechunking merged chunk {i} / {total_chunks} (original tokens: {chunk['tokens']})")
+        subchunks = chunker.split_text(chunk["text"])
+        print(f"Created {len(subchunks)} subchunks from chunk {i}")
+
+        for sub in subchunks:
+            tokens = len(sub.split())
+            final_chunks.append({
+                "text": sub,
+                "tokens": tokens,
+                "label": relabel_chunk(tokens)
+            })
+
+    print(f"\nSemantic rechunking complete. Total final chunks: {len(final_chunks)}")
+    return final_chunks
