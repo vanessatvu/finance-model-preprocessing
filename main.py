@@ -4,7 +4,7 @@ os.environ["TOKENIZERS_PARALLELISM"] = "false"
 from chunking import load_tokenizer, chunk_and_classify_text
 from config import INPUT_FILE, OUTPUT_FILE
 from utils import save_to_jsonl, save_to_txt  # include save_to_txt
-from megaparse import merge_similar_chunks
+from chunk_merger import merge_similar_chunks
 
 def main():
     tokenizer = load_tokenizer()
