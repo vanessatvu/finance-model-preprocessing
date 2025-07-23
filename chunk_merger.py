@@ -7,7 +7,7 @@ from langchain.embeddings import HuggingFaceEmbeddings
 model = SentenceTransformer("all-mpnet-base-v2")
 
 # CONFIGS
-SIMILARITY_THRESHOLD = 0.85  # adjusted for stricter merging
+SIMILARITY_THRESHOLD = 0.80 # propose to make this threshold higher (0.85/0.9) to reduce chunk length so chunks that are only very semantically similar are combined maybe ?
 MIN_LENGTH_TO_CHECK = 10     
 
 # Check if 2 chunks are related based on cosine similarity
@@ -32,7 +32,7 @@ def relabel_chunk(tokens: int) -> str:
     else:
         return "light"
 
-# Merge semantically similar chunks
+# first pass: merge semantically similar chunks
 def merge_similar_chunks(chunks: List[Dict]) -> List[Dict]:
     if not chunks:
         return []
@@ -53,26 +53,31 @@ def merge_similar_chunks(chunks: List[Dict]) -> List[Dict]:
     print(f"Merging complete. Total merged chunks: {len(merged_chunks)}")
     return merged_chunks
 
-# semantic rechunking pass
+# second pass to rechunk merged chunks semantically
 def semantic_rechunk_pass(merged_chunks: List[Dict]) -> List[Dict]:
-    embedding_model = HuggingFaceEmbeddings(model_name="all-mpnet-base-v2")
-    chunker = SemanticChunker(embedding_model, overlap=50)
+    embedding_function = HuggingFaceEmbeddings(model_name="all-mpnet-base-v2")
+    semantic_chunker = SemanticChunker(embeddings=embedding_function)
+
+    # set params
+    semantic_chunker.chunk_size = 400
+    semantic_chunker.chunk_overlap = 50
 
     final_chunks = []
-    total_chunks = len(merged_chunks)
+    for i, chunk in enumerate(merged_chunks):
+        text = chunk["text"]
+        print(f"Rechunking merged chunk {i} / {len(merged_chunks)} (original tokens: {chunk.get('tokens', 0)})")
+        try:
+            split_texts = semantic_chunker.split_text(text)
+            for split in split_texts:
+                final_chunks.append({
+                    "text": split,
+                    "tokens": len(split.split()),
+                    "label": relabel_chunk(len(split.split()))
+                })
+            print(f"Created {len(split_texts)} subchunks from chunk {i}")
+        except Exception as e:
+            print(f"Failed to rechunk chunk {i}: {e}")
+            final_chunks.append(chunk)
 
-    for i, chunk in enumerate(merged_chunks, 1):
-        print(f"Rechunking merged chunk {i} / {total_chunks} (original tokens: {chunk['tokens']})")
-        subchunks = chunker.split_text(chunk["text"])
-        print(f"Created {len(subchunks)} subchunks from chunk {i}")
-
-        for sub in subchunks:
-            tokens = len(sub.split())
-            final_chunks.append({
-                "text": sub,
-                "tokens": tokens,
-                "label": relabel_chunk(tokens)
-            })
-
-    print(f"\nSemantic rechunking complete. Total final chunks: {len(final_chunks)}")
+    print(f"Semantic rechunking complete. Final chunk count: {len(final_chunks)}")
     return final_chunks
